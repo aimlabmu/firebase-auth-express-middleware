@@ -8,6 +8,8 @@
  * If authenticated, the decoded JWT will be attached to request for use downstream
  */
 
+const url = require('url');
+
 // Factory function to setup the middleware
 module.exports = function setup(
   firebaseAdmin,
@@ -56,6 +58,20 @@ module.exports = function setup(
         };
 
         return next();
+      } else if (url.parse(req.url, true).query['access_token']) {
+        const accessToken = url.parse(req.url, true).query['access_token'];
+        // req[attachUserTo] = await firebaseAdmin
+        const decodedToken = await firebaseAdmin
+          .auth()
+          .verifyIdToken(accessToken);
+        if (decodedToken) {
+          return next();
+        } else {
+          return res.status(401).json({
+            ok: false,
+            error: "MISSING AUTH",
+          });
+        }
       }
       // 401 Missing auth token thus unauthorised
       else
